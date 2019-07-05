@@ -1,6 +1,8 @@
 // TODO:
 //  - Allow player to set objects on top of each other
 //  - Move messages to LANGUAGE
+//  - Disallow lifting enemies
+//  - Flag to let player take inventory items
 
 // Holds an object in front of the player
 class Grabber : Inventory
