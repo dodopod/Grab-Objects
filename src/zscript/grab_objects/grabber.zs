@@ -1,85 +1,8 @@
-version "4.1.3"
-
 // TODO:
 //  - Allow player to set objects on top of each other
 //  - Move messages to LANGUAGE
 
-class GrabbyPlayer : DoomPlayer
-{
-    Default
-    {
-		//Player.StartItem "Pistol";
-		Player.StartItem "NoWeapon";
-		Player.StartItem "Clip", 50;
-    }
-}
-
-
-class NoWeapon : Fist
-{
-    Property SlowThreshold : slowThreshold;
-    Property LiftThreshold : liftThreshold;
-
-    Default
-    {
-        Weapon.SlotNumber 1;
-        Weapon.AmmoUse2 0;
-        NoWeapon.SlowThreshold 100;
-        NoWeapon.LiftThreshold 200;
-
-        +Weapon.Alt_Ammo_Optional
-        +Weapon.NoAlert
-        +Weapon.NoAutoFire
-    }
-
-    double slowThreshold;
-    double liftThreshold;
-    Grabber grabber;
-
-    States
-    {
-	Ready:
-		PUNG A 1 A_WeaponReady();
-		Loop;
-    Ready.Holding:
-        PUNG A 1 A_WeaponReady(WRF_NoPrimary);
-        Loop;
-    AltFire:
-        PUNG A 1
-        {
-            if (CountInv("Grabber")) return ResolveState("AltFire.Drop");
-            return ResolveState("AltFire.Grab");
-        }
-    AltFire.Grab:
-        PUNG A 1
-        {
-            invoker.grabber = Grabber(Spawn("Grabber"));
-            AddInventory(invoker.grabber);
-            if (invoker.grabber.TryGrab(64, invoker.liftThreshold))
-            {
-                if (invoker.grabber.holding.mass >= invoker.slowThreshold) A_GiveInventory("PowerEncumbrance");
-                return ResolveState("Ready.Holding");
-            }
-
-            invoker.grabber.Destroy();
-            return ResolveState("Ready");
-        }
-    AltFire.Drop:
-        PUNG A 1
-        {
-            double throwSpeed = Max(16 - 0.12 * invoker.grabber.holding.mass, 0);
-            if (invoker.grabber.TryDrop(throwSpeed))
-            {
-                A_TakeInventory("PowerEncumbrance");
-                return ResolveState("Ready");
-            }
-
-            return ResolveState("Ready.Holding");
-        }
-    }
-}
-
-
+// Holds an object in front of the player
 class Grabber : Inventory
 {
     Property Offset : ofsX, ofsY, ofsZ; // Offset from player eyes to center of object
@@ -125,6 +48,7 @@ class Grabber : Inventory
     }
 
 
+    // Tries to grab object in front of player
     bool TryGrab(double range, double maxMass = 0)
     {
         if (!owner || !owner.player) return false;
@@ -147,6 +71,7 @@ class Grabber : Inventory
         return false;
     }
 
+    // Grabs given object
     void Grab(Actor mo)
     {
         if (!mo) return;
@@ -161,6 +86,7 @@ class Grabber : Inventory
         else holding.alpha = alpha;
     }
 
+    // Tries to drop object, if nothing is in the way
     bool TryDrop(double throwSpeed = 0)
     {
         if (!holding) return true;
@@ -197,6 +123,7 @@ class Grabber : Inventory
         return true;
     }
 
+    // Reseases object
     void Drop(double throwSpeed = 0)
     {
         if (!holding) return;
@@ -220,6 +147,7 @@ class Grabber : Inventory
         Destroy();
     }
 
+    // Moves object in front of player, if they intersect
     void MoveOutside(Actor mo, Actor from, bool test, bool horizontal = false)
     {
         Vector3 forward;
@@ -243,42 +171,5 @@ class Grabber : Inventory
 
         if (test) mo.SetXyz(newPos);
         else mo.SetOrigin(newPos, true);
-    }
-}
-
-class PowerEncumbrance : PowerSpeed
-{
-    Default
-    {
-        Speed 0.25;
-    }
-}
-
-
-class MyExplosiveBarrel : ExplosiveBarrel replaces ExplosiveBarrel
-{
-    Default
-    {
-        Mass 100;
-        +CanPass
-    }
-}
-
-class MyCandleStick : Candlestick replaces Candlestick
-{
-    Default
-    {
-        Mass 1;
-        +CanPass
-        +Shootable
-        +NoBlood
-    }
-}
-
-class MyTechPillar : TechPillar replaces TechPillar
-{
-    Default
-    {
-        Mass 400;
     }
 }
